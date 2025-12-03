@@ -57,7 +57,6 @@ for item in res.feed:
         "author_handle": post.author.handle,
         "text": record.text,
         "created_at": getattr(record, "created_at", None),
-        "indexed_at": getattr(post, "indexed_at", None),
     }
 
     print(data)

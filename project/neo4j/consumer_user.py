@@ -5,7 +5,7 @@ import json
 consumer = Consumer({
     'bootstrap.servers': 'localhost:9092',
     'group.id': 'neo4j-consumer',
-    'auto.offset.reset': 'earliest'
+    'auto.offset.reset': 'latest'
 })
 
 consumer.subscribe(["user"])
