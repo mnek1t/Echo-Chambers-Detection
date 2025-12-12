@@ -53,12 +53,13 @@ def get_likers(uri, limit=5):
 
 """LIKED POST"""
 
-res = client.app.bsky.feed.get_actor_likes(
-    params={'actor': "did:plc:izxrgd74aaftvtqk7tg4cs3t", 'limit': 10}
+res = client.app.bsky.feed.get_author_feed(
+    params={'actor': "did:plc:bdpk2ruwaltvyljllsj57ven", 'limit': 10}
+    # params = {'actor': profile.did, 'limit': 10}
+
 )
 
-
-# print(res)
+print(res)
 
 posts = []
 for item in res.feed:

@@ -28,6 +28,17 @@ def insert_user(tx, data):
     display_name=clean(data.get("display_name")),
 )
 
+def insert_liked(tx, data):
+    tx.run("""
+        MERGE (u:User {did: $user_did})
+        MERGE (p:Post {uri: $uri})
+        MERGE (u)-[:LIKED]->(p)
+    """,
+           user_did=data["user_did"],
+           uri=data["uri"]
+           )
+
+
 while True:
     msg = consumer.poll(1.0)
     if msg is None:
@@ -37,4 +48,7 @@ while True:
     print("Received:", data)
 
     with driver.session() as session:
-        session.execute_write(insert_user, data)
+        if "type" in data and data["type"] == "LIKED":
+            session.execute_write(insert_liked, data)
+        else:
+            session.execute_write(insert_user, data)

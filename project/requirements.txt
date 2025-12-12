@@ -1,0 +1,5 @@
+confluent-kafka
+atproto
+neo4j
+qdrant-client
+sentence-transformers

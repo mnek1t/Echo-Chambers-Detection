@@ -19,8 +19,8 @@ def insert_post(tx, data):
         SET p.text = $text,
             p.cid  = $cid
         WITH p
-        MERGE (u:User {did: $liker})
-        MERGE (u)-[:LIKED]->(p)
+        MERGE (u:User {did: $author})
+        MERGE (u)-[:POSTED]->(p)
     """, **data)
 
 while True:
