@@ -15,7 +15,7 @@ query_vector = model.encode(query_text).tolist()
 results = qdrant.search(
     collection_name="posts",
     query_vector=query_vector,
-    limit=150,
+    limit=1000,
     with_payload=True
 )
 
