@@ -1,6 +1,7 @@
 
 
-`cd kafka`
+`cd kafka`  
+
 `docker-compose up -d`
 
 Launch Neo4J and start the instance with the port `7687`: 
