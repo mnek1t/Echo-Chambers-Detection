@@ -1,16 +1,37 @@
 from confluent_kafka import Consumer
 from neo4j import GraphDatabase
 import json
+import os
+
+############################################################
+# 1. CONFIG
+############################################################
+
+KAFKA_BROKER = os.getenv("KAFKA_BROKER")
+KAFKA_TOPIC = os.getenv("KAFKA_TOPIC_USERS")
+KAFKA_GROUP = os.getenv("KAFKA_GROUP_NEO4J_USERS")
+
+NEO4J_URI = os.getenv("NEO4J_URI")
+NEO4J_USER = os.getenv("NEO4J_USER")
+NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD")
+
+############################################################
+# 2. CLIENTS
+############################################################
 
 consumer = Consumer({
-    'bootstrap.servers': 'localhost:9092',
-    'group.id': 'neo4j-consumer',
+    'bootstrap.servers': KAFKA_BROKER,
+    'group.id': KAFKA_GROUP,
     'auto.offset.reset': 'latest'
 })
 
-consumer.subscribe(["user"])
+consumer.subscribe([KAFKA_TOPIC])
 
-driver = GraphDatabase.driver("bolt://localhost:7687", auth=("neo4j", "lapoland2025"))
+driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
+
+############################################################
+# 3. DB LOGIC
+############################################################
 
 def clean(value):
     """Convert None or '' into a safe type for Neo4j."""
@@ -34,14 +55,18 @@ def insert_liked(tx, data):
         MERGE (p:Post {uri: $uri})
         MERGE (u)-[:LIKED]->(p)
     """,
-           user_did=data["user_did"],
-           uri=data["uri"]
-           )
+        user_did=data["user_did"],
+        uri=data["uri"]
+    )
 
-
+print("[NEO4J USERS] Consumer started")
 while True:
     msg = consumer.poll(1.0)
     if msg is None:
+        continue
+
+    if msg.error():
+        print("[KAFKA ERROR]", msg.error())
         continue
     # print(msg.value())
     data = json.loads(msg.value().decode("utf-8"))

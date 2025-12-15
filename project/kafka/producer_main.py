@@ -2,23 +2,30 @@ from confluent_kafka import Producer
 from atproto import Client
 import json
 import time
-
+import os
 
 ############################################################
 # 1. CONFIGURATION
 ############################################################
+KAFKA_BROKER = os.getenv("KAFKA_BROKER")
+TOPIC_USERS = os.getenv("KAFKA_TOPIC_USERS")
+TOPIC_POSTS = os.getenv("KAFKA_TOPIC_POSTS")
 
-producer = Producer({"bootstrap.servers": "localhost:9092"})
+BLUESKY_HANDLE = os.getenv("BLUESKY_HANDLE")
+BLUESKY_PASSWORD = os.getenv("BLUESKY_PASSWORD")
+
+MAX_LIKERS = int(os.getenv("MAX_LIKERS", 20))
+MAX_ITERATIONS = int(os.getenv("MAX_ITERATIONS", 2))
+SEED_HANDLE = os.getenv("SEED_HANDLE")
+
+############################################################
+# 2. CLIENTS
+############################################################
+print(KAFKA_BROKER)
+producer = Producer({"bootstrap.servers": KAFKA_BROKER})
 
 client = Client()
-client.login('projectbdbluesky@proton.me', '36YGK7^z&48zen')
-
-# Pour éviter les doublons :
-SEEN_USERS = set()
-SEEN_POSTS = set()
-
-MAX_LIKERS = 20
-MAX_ITERATIONS = 2
+client.login(BLUESKY_HANDLE, BLUESKY_PASSWORD)
 
 ############################################################
 # 2. KAFKA SENDER
@@ -51,7 +58,6 @@ def get_user_posts(did, limit=10):
             posts.append(curr)
             # print("AUTHOR", curr["author"])
     return posts
-
 
 def get_profile(did_or_handle):
     profile = client.app.bsky.actor.get_profile(
@@ -147,7 +153,7 @@ def crawl(seed_handle):
             seen_users.add(did)
             print("user send", did)
             # send_to_kafka("users", did)
-            send_to_kafka("user", get_profile(did))
+            send_to_kafka(TOPIC_USERS, get_profile(did))
 
             posts = get_user_posts(did, limit=10)
             for post in posts:
@@ -157,7 +163,7 @@ def crawl(seed_handle):
                 seen_posts.add(post["uri"])
                 print("post send", post["uri"])
                 print("post send author", post["author"])
-                send_to_kafka("posts", post)
+                send_to_kafka(TOPIC_POSTS, post)
 
                 likers = get_likers(post["uri"], MAX_LIKERS)
                 for liker in likers:
@@ -167,7 +173,7 @@ def crawl(seed_handle):
                             "uri": post["uri"],
                             "type": "LIKED"
                         }
-                        send_to_kafka("user", liked)
+                        send_to_kafka(TOPIC_USERS, liked)
                         next_users.add(liker["did"])
 
         current_users = next_users
@@ -181,7 +187,7 @@ def crawl(seed_handle):
 ############################################################
 
 if __name__ == "__main__":
-    seed = "projectdbbluesky.bsky.social"  # handle
+    seed = SEED_HANDLE  # handle
     seed_profile = get_profile(seed)
     crawl(seed_profile["did"])
 

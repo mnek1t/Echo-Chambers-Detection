@@ -4,24 +4,32 @@ from qdrant_client.models import VectorParams, Distance
 from sentence_transformers import SentenceTransformer
 import json
 import uuid
+import os
 ############################################################
 # 1. CONFIG
 ############################################################
 
-KAFKA_TOPIC = "posts"
-QDRANT_COLLECTION = "posts"
+KAFKA_TOPIC = os.getenv("KAFKA_TOPIC_POSTS")
+KAFKA_BROKER = os.getenv("KAFKA_BROKER")
+KAFKA_GROUP = os.getenv("KAFKA_QDRANT_GROUP")
+
+QDRANT_HOST = os.getenv("QDRANT_HOST")
+QDRANT_PORT = int(os.getenv("QDRANT_PORT"))
+QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION")
+
+MODEL_NAME = os.getenv("SENTENCE_MODEL")
 
 consumer = Consumer({
-    "bootstrap.servers": "localhost:9092",
-    "group.id": "qdrant-consumer",
+    "bootstrap.servers": KAFKA_BROKER,
+    "group.id": KAFKA_GROUP,
     "auto.offset.reset": "earliest"
 })
 
 consumer.subscribe([KAFKA_TOPIC])
 
-qdrant = QdrantClient(host="localhost", port=6333)
+qdrant = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT)
 
-model = SentenceTransformer("all-MiniLM-L6-v2")
+model = SentenceTransformer(MODEL_NAME)
 
 ############################################################
 # 2. INIT QDRANT COLLECTION
