@@ -8,6 +8,7 @@ services:
     image: neo4j:latest
     container_name: graph-db-neo4j
     ports:
+      - 7474:7474
       - 7687:7687
     environment:
       NEO4J_AUTH: "${NEO4J_USER}/${NEO4J_PASSWORD}"
