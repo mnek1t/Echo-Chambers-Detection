@@ -10,7 +10,7 @@ qdrant = QdrantClient(host="localhost", port=6333)
 post_embeddings = {}
 all_points = []
 offset = 0
-batch_size = 1000
+batch_size = 10000
 while True:
     points, scroll_id = qdrant.scroll(
         collection_name="posts",
@@ -19,10 +19,10 @@ while True:
         limit=batch_size,
         offset=offset
     )
-    if not points:
+    if scroll_id == None:
         break
     all_points.extend(points)
-    offset += len(points)
+    offset = scroll_id
 for p in all_points:
     post_embeddings[p.payload["uri"]] = np.array(p.vector)
 
@@ -38,7 +38,7 @@ def get_user_embeddings():
     with neo4j.session() as session:
         result = session.run("""
             MATCH (u:User)-[:LIKED|POSTED]->(p:Post)
-            RETURN p.cid AS post_id, elementId(u) AS user_id
+            RETURN p.cid AS post_id, u.did AS user_id
             """
         )
         for record in result:
@@ -52,22 +52,26 @@ def get_user_embeddings():
 
     user_embeddings = {u: np.mean(vectors, axis=0) for u, vectors in user_embeddings.items()}
 
-    print("===")
-    #print(set(posts.values()))
-    print(user_embeddings.keys())
-    print("===")
-
     df_communities = clean_csv("hdbscan_clusters.csv")
-    communities = dict(zip(df_communities["neo4jId"], df_communities["label"]))
+
+    with neo4j.session() as session:
+        result = session.run("""
+            MATCH (u:User)
+            RETURN elementId(u) AS neo4jId, u.did AS did
+            """
+        )
+        id_map = {record["neo4jId"]: record["did"] for record in result}
+    
+    df_communities["did"] = df_communities["neo4jId"].apply(lambda x: id_map[x])
+    communities = dict(zip(df_communities["did"], df_communities["label"]))
 
     G = nx.Graph()
     with neo4j.session() as session:
         result = session.run("""
-            MATCH (u1:User)-[:LIKED|POSTED]-(u2:User)
-            RETURN u1.id AS u1, u2.id AS u2
+            MATCH (u1:User)-[:LIKED|POSTED]->(p:Post)<-[:LIKED|POSTED]-(u2:User)
+            RETURN u1.did AS u1, u2.did AS u2
             """
         )
-        print(result)
         for record in result:
             u1, u2 = record["u1"], record["u2"]
             if u1 in user_embeddings and u2 in user_embeddings and u1 in communities and u2 in communities:

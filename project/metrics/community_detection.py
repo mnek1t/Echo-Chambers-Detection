@@ -10,8 +10,8 @@ G, result = gds.graph.project.cypher(
     "MATCH (u:User) RETURN id(u) AS id",
     """
     MATCH (u1:User)-[:LIKED|POSTED]->(p:Post)<-[:LIKED|POSTED]-(u2:User)
-    WHERE elementId(u1) < elementId(u2)
-    RETURN elementId(u1) AS source, elementId(u2) AS target, count(p) AS weight
+    WHERE id(u1) < id(u2)
+    RETURN id(u1) AS source, id(u2) AS target, count(p) AS weight
     """
 )
 
@@ -29,8 +29,6 @@ df = gds.hdbscan.stream(
     nodeProperty="embedding",
     minClusterSize=10
 )
-
-print(df)
 
 df["neo4jId"] = df["nodeId"].apply(lambda x: gds.util.asNode(x).element_id)
 df = df.drop(columns=["nodeId"])
