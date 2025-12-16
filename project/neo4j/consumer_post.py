@@ -2,7 +2,9 @@ from confluent_kafka import Consumer
 from neo4j import GraphDatabase
 import json
 import os
+from dotenv import load_dotenv
 
+load_dotenv()
 ############################################################
 # 1. CONFIG
 ############################################################

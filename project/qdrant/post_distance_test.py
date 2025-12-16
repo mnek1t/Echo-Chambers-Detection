@@ -2,6 +2,11 @@ import os
 from qdrant_client import QdrantClient
 from sentence_transformers import SentenceTransformer
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
 # Connexion
 QDRANT_HOST = os.getenv("QDRANT_HOST")
 QDRANT_PORT = int(os.getenv("QDRANT_PORT"))

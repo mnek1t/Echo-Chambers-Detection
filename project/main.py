@@ -2,7 +2,8 @@ import subprocess
 import time
 import signal
 import sys
-
+from dotenv import load_dotenv
+load_dotenv()
 processes = []
 
 def start_process(cmd, name):

@@ -1,6 +1,5 @@
 version: '3.9'
-name: echo-chambers-detection-proj
-networks: 
+networks:
   echo-chamber-net:
 
 services:

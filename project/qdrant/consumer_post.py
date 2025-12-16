@@ -5,6 +5,10 @@ from sentence_transformers import SentenceTransformer
 import json
 import uuid
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 ############################################################
 # 1. CONFIG
 ############################################################
