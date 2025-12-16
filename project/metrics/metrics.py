@@ -34,13 +34,23 @@ def embedding_variance(embeddings, communities):
     variances = {}
     
     for c in set(communities.values()):
-        members = [u for u in embeddings.keys() if communities[u] == c]
-        vecs = np.array([embeddings[u] for u in members])
+        members = [u for u in communities.keys() if communities[u] == c]
+        vecs = np.array([embeddings[u] for u in members if u in embeddings])
+
+        if vecs.size == 0:
+            variances[c] = -1 # none of the members posted anything -> no embeddings
+            continue
+
         centroid = vecs.mean(axis=0)
         var = np.mean(np.linalg.norm(vecs - centroid, axis=1)**2)
         variances[c] = var
     
-    return variances
+    filtered_variances = {}
+    for c in variances:
+        if variances[c] != -1:
+            filtered_variances[c] = variances[c]
+
+    return variances, filtered_variances
 
 
 def compute_modularity(G, communities):

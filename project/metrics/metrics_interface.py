@@ -4,7 +4,7 @@ import networkx as nx
 from qdrant_client import QdrantClient
 from neo4j import GraphDatabase
 from collections import defaultdict
-from metrics import ecs, embedding_variance, compute_modularity, homophily
+from metrics import ecs, embedding_variance, compute_modularity, homophily, compute_conductance
 
 qdrant = QdrantClient(host="localhost", port=6333)
 post_embeddings = {}
@@ -80,5 +80,11 @@ def get_user_embeddings():
     return G, user_embeddings, communities
 
 G, user_embeddings, communities = get_user_embeddings()
+print(list(G.nodes())[0], list(user_embeddings.items())[0], list(communities.items())[0])
 ecs_value, cohesion, separation = ecs(G, user_embeddings, communities)
 print(f"ECS: {ecs_value:.4f}, Cohesion: {cohesion:.4f}, Separation: {separation:.4f}")
+full_variances, filtered_variances = embedding_variance(user_embeddings, communities)
+print(filtered_variances)
+homophily_value = homophily(G, user_embeddings)
+print(homophily_value)
+conductance_scores = compute_conductance(G, communities)
