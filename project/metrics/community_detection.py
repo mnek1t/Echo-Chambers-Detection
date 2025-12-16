@@ -2,6 +2,8 @@ from graphdatascience import GraphDataScience
 
 gds = GraphDataScience("bolt://localhost:7687", auth=("neo4j", "lapoland2025"))
 
+#TODO: refactor as function(s)
+
 if gds.graph.exists("userGraph")["exists"]:
     gds.graph.drop("userGraph")
 

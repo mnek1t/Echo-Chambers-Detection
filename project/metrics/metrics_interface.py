@@ -79,6 +79,7 @@ def get_user_embeddings():
 
     return G, user_embeddings, communities
 
+#TODO: put these in one function
 G, user_embeddings, communities = get_user_embeddings()
 print(list(G.nodes())[0], list(user_embeddings.items())[0], list(communities.items())[0])
 ecs_value, cohesion, separation = ecs(G, user_embeddings, communities)
@@ -87,4 +88,5 @@ full_variances, filtered_variances = embedding_variance(user_embeddings, communi
 print(filtered_variances)
 homophily_value = homophily(G, user_embeddings)
 print(homophily_value)
-conductance_scores = compute_conductance(G, communities)
+conductance_scores, filtered_conductance_scores = compute_conductance(G, communities)
+print(filtered_conductance_scores)

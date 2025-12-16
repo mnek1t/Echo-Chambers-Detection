@@ -45,10 +45,7 @@ def embedding_variance(embeddings, communities):
         var = np.mean(np.linalg.norm(vecs - centroid, axis=1)**2)
         variances[c] = var
     
-    filtered_variances = {}
-    for c in variances:
-        if variances[c] != -1:
-            filtered_variances[c] = variances[c]
+    filtered_variances = {c: score for c, score in variances.items() if score != -1}
 
     return variances, filtered_variances
 
@@ -58,7 +55,7 @@ def compute_modularity(G, communities):
     for node, com in communities.items():
         com_sets.setdefault(com, set()).add(node)
         
-    return modularity(G, list(com_sets.values()), weight='weight')
+    return modularity(G, list(com_sets.values()), weight='weight') #TODO: check this
 
 
 def homophily(G, embeddings):
@@ -80,7 +77,9 @@ def compute_conductance(G, communities):
         vol_C = sum(G.degree(u) for u in C)
         vol_out = sum(G.degree(u) for u in outside)
         
-        conductance_scores[c] = cut_edges / min(vol_C, vol_out)
+        conductance_scores[c] = cut_edges / min(vol_C, vol_out) if min(vol_C, vol_out) > 0 else 10000 # arbitrarily large number
     
-    return conductance_scores
+    filtered_conductance_scores = {c: score for c, score in conductance_scores.items() if score < 10000}
+
+    return conductance_scores, filtered_conductance_scores
 
