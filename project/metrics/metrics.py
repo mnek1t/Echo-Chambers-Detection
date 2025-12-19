@@ -1,4 +1,5 @@
 import numpy as np
+import networkx as nx
 from sklearn.metrics.pairwise import cosine_similarity
 
 def _cohesive(inside_similarities):
@@ -28,7 +29,7 @@ def ecs(G, embeddings, communities):
     separation = _separation(outside_similarities)
     
     ecs = cohesion * separation
-    return ecs, cohesion, separation
+    return ecs, cohesion, separation, inside_similarities, outside_similarities
 
 def embedding_variance(embeddings, communities):
     variances = {}
@@ -53,10 +54,21 @@ def embedding_variance(embeddings, communities):
 def compute_modularity(G, communities):
     com_sets = {}
     for node, com in communities.items():
-        com_sets.setdefault(com, set()).add(node)
-        
-    return modularity(G, list(com_sets.values()), weight='weight') #TODO: check this
+        com_sets.setdefault(com, set())
+        com_sets[com].add(node)
+    
+    cleaned_com_sets = {}
+    for com, nodes in com_sets.items():
+        if nx.community.is_partition(G, [nodes]):
+            cleaned_com_sets[com] = nodes
+        else:
+            print("Invalid:", com, nodes)
 
+    if len(cleaned_com_sets) == 0:
+        print("No valid communities for modularity calculation.")
+        return 0
+
+    return nx.community.modularity(G, list(cleaned_com_sets.values()), weight='weight')
 
 def homophily(G, embeddings):
     sims = []
