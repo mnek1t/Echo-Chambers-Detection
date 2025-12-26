@@ -33,7 +33,7 @@ def clean_csv(input_file: str):
     df = df[df["label"] != -1]
     return df
 
-def get_user_embeddings():
+def get_user_embeddings(csv_name):
     posts = {}
     with neo4j.session() as session:
         result = session.run("""
@@ -52,7 +52,7 @@ def get_user_embeddings():
 
     user_embeddings = {u: np.mean(vectors, axis=0) for u, vectors in user_embeddings.items()}
 
-    df_communities = clean_csv("hdbscan_clusters.csv")
+    df_communities = clean_csv(csv_name)
 
     with neo4j.session() as session:
         result = session.run("""
@@ -81,23 +81,33 @@ def get_user_embeddings():
 
     return G, user_embeddings, communities
 
-#TODO: put these in one function
-G, user_embeddings, communities = get_user_embeddings()
-print(list(G.nodes())[0], list(user_embeddings.items())[0], list(communities.items())[0])
-ecs_value, cohesion, separation, inside_similarities, outside_similarities = ecs(G, user_embeddings, communities)
-print("===")
-print(f"ECS: {ecs_value:.4f}, Cohesion: {cohesion:.4f}, Separation: {separation:.4f}")
-full_variances, filtered_variances = embedding_variance(user_embeddings, communities)
-print("===")
-print("Variances:")
-print(filtered_variances)
-modularity_value = compute_modularity(G, communities)
-print(modularity_value)
-homophily_value = homophily(G, user_embeddings)
-print("===")
-print("Homophily:", homophily_value)
-conductance_scores, filtered_conductance_scores = compute_conductance(G, communities)
-print("===")
-print("Conductance scores:")
-print(filtered_conductance_scores)
-print("===")
+def print_metrics(csv_name):
+    G, user_embeddings, communities = get_user_embeddings(csv_name)
+
+    ecs_value, cohesion, separation, inside_similarities, outside_similarities = ecs(G, user_embeddings, communities)
+    print("===")
+    print(f"ECS: {ecs_value:.4f}, Cohesion: {cohesion:.4f}, Separation: {separation:.4f}")
+
+    full_variances, filtered_variances = embedding_variance(user_embeddings, communities)
+    print("===")
+    print("Variances:")
+    print(len(filtered_variances))
+
+    modularity_value = compute_modularity(G, communities)
+    print("===")
+    print("Modularity:", modularity_value)
+
+    homophily_value = homophily(G, user_embeddings)
+    print("===")
+    print("Homophily:", homophily_value)
+
+    conductance_scores, filtered_conductance_scores = compute_conductance(G, communities)
+    print("===")
+    print("Conductance scores:")
+    print(len(filtered_conductance_scores))
+    print("===")
+
+for csv_file in ["hdbscan_clusters.csv", "kcore_clusters.csv", "label_propagation_clusters.csv", "leiden_clusters.csv", "louvain_clusters.csv", "modularity_optimization_clusters.csv"]:
+    print(f"Metrics for {csv_file}:")
+    print_metrics(csv_file)
+    print("\n\n")

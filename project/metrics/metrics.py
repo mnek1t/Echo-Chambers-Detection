@@ -61,8 +61,6 @@ def compute_modularity(G, communities):
     for com, nodes in com_sets.items():
         if nx.community.is_partition(G, [nodes]):
             cleaned_com_sets[com] = nodes
-        else:
-            print("Invalid:", com, nodes)
 
     if len(cleaned_com_sets) == 0:
         print("No valid communities for modularity calculation.")
