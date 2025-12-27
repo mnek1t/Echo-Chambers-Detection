@@ -1,4 +1,5 @@
 from graphdatascience import GraphDataScience
+import pandas as pd
 
 gds = GraphDataScience("bolt://localhost:7687", auth=("neo4j", "lapoland2025"))
 
@@ -70,10 +71,17 @@ def run_modularity_optimization(G):
     return df
 
 def save_communities(df, algorithm_name):
-    df["neo4jId"] = df["nodeId"].apply(lambda x: gds.util.asNode(x).element_id)
-    df = df.drop(columns=["nodeId"])
+    result_df = pd.DataFrame()
+    result_df["neo4jId"]= df["nodeId"].apply(lambda x: gds.util.asNode(x).element_id)
+    
+    if "coreValue" in df.columns:
+        result_df["label"] = df["coreValue"]
+    elif "communityId" in df.columns:
+        result_df["label"] = df["communityId"]
+    else:
+        result_df["label"] = df["label"]
 
-    df.to_csv(f"{algorithm_name}_clusters.csv", index=False)
+    result_df.to_csv(f"{algorithm_name}_clusters.csv", index=False)
 
 def run_community_detection():
     G = produce_graph_projection()
