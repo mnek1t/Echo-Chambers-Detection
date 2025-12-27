@@ -1,4 +1,5 @@
 import numpy as np
+import networkx as nx
 from sklearn.metrics.pairwise import cosine_similarity
 import networkx as nx
 import pandas as pd
@@ -31,7 +32,7 @@ def ecs(G, embeddings, communities):
     separation = _separation(outside_similarities)
     
     ecs = cohesion * separation
-    return ecs, cohesion, separation
+    return ecs, cohesion, separation, inside_similarities, outside_similarities
 
 def embedding_variance(embeddings, communities):
     variances = {}
@@ -63,7 +64,6 @@ def compute_modularity(G, communities):
         com_sets[c].add(u)
 
     return nx.community.modularity(G, list(com_sets.values()))
-
 
 def homophily(G, embeddings):
     sims = []

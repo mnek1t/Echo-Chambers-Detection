@@ -84,6 +84,8 @@ def get_user_embeddings():
     
     df_communities["did"] = df_communities["neo4jId"].apply(lambda x: id_map[x])
     communities = dict(zip(df_communities["did"], df_communities["label"]))
+    communities = {did: com for did, com in communities.items() if did in user_embeddings}
+    user_embeddings = {did: emb for did, emb in user_embeddings.items() if did in communities}
 
     G = nx.Graph()
     with neo4j.session() as session:
@@ -94,7 +96,7 @@ def get_user_embeddings():
         )
         for record in result:
             u1, u2 = record["u1"], record["u2"]
-            if u1 in user_embeddings and u2 in user_embeddings and u1 in communities and u2 in communities:
+            if u1 in user_embeddings and u2 in user_embeddings:
                 G.add_edge(u1, u2)
 
     return G, user_embeddings, communities
@@ -149,3 +151,34 @@ plt.title("Embedding Variance by Community")
 plt.tight_layout()
 plt.savefig("variance_by_community.png")
 plt.close()
+
+def print_metrics(csv_name):
+    G, user_embeddings, communities = get_user_embeddings(csv_name)
+
+    ecs_value, cohesion, separation, inside_similarities, outside_similarities = ecs(G, user_embeddings, communities)
+    print("===")
+    print(f"ECS: {ecs_value:.4f}, Cohesion: {cohesion:.4f}, Separation: {separation:.4f}")
+
+    full_variances, filtered_variances = embedding_variance(user_embeddings, communities)
+    print("===")
+    print("Variances:")
+    print(len(filtered_variances))
+
+    modularity_value = compute_modularity(G, communities)
+    print("===")
+    print("Modularity:", modularity_value)
+
+    homophily_value = homophily(G, user_embeddings)
+    print("===")
+    print("Homophily:", homophily_value)
+
+    conductance_scores, filtered_conductance_scores = compute_conductance(G, communities)
+    print("===")
+    print("Conductance scores:")
+    print(len(filtered_conductance_scores))
+    print("===")
+
+for csv_file in ["hdbscan_clusters.csv", "kcore_clusters.csv", "label_propagation_clusters.csv", "leiden_clusters.csv", "louvain_clusters.csv", "modularity_optimization_clusters.csv"]:
+    print(f"Metrics for {csv_file}:")
+    print_metrics(csv_file)
+    print("\n\n")
