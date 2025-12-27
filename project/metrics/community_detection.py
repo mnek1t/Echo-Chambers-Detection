@@ -1,6 +1,10 @@
+import os
 from graphdatascience import GraphDataScience
 
-gds = GraphDataScience("bolt://localhost:7687", auth=("neo4j", "lapoland2025"))
+NEO4J_URI = os.getenv("NEO4J_URI")
+NEO4J_USER = os.getenv("NEO4J_USER")
+NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD")
+gds = GraphDataScience(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
 
 #TODO: refactor as function(s)
 
