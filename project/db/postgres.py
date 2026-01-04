@@ -1,4 +1,5 @@
 import os
+import pandas as pd
 from sqlalchemy import create_engine, text
 
 def get_engine():
@@ -21,6 +22,7 @@ def get_algorithm_id(engine, name: str):
             {"name": name}
         ).scalar_one()
 
+
 def insert_clustering_run_record(engine, algorithm_id: str, description: str):
     with engine.begin() as conn:
         return conn.execute(
@@ -31,7 +33,8 @@ def insert_clustering_run_record(engine, algorithm_id: str, description: str):
                 """),
             {"algorithm_id": algorithm_id, "description": description}
         ).scalar()
-    
+
+
 def expire_community_membership(engine, neo4j_ids):
     with engine.begin() as conn:
         conn.execute(
@@ -42,3 +45,14 @@ def expire_community_membership(engine, neo4j_ids):
                 """),
             {'neo4j_ids': neo4j_ids}
         )
+
+
+def get_communities_from_postgres(engine, run_id: str):
+    query = text("""
+        SELECT cm.neo4j_id, c.label, c.id
+        FROM community_membership cm
+        JOIN community c ON cm.community_id = c.id
+        WHERE c.run_id = :run_id
+    """)
+    df = pd.read_sql(query, engine, params={"run_id": run_id})
+    return df

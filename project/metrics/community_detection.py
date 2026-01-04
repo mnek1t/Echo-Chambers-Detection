@@ -3,8 +3,10 @@ import uuid
 from datetime import datetime
 from graphdatascience import GraphDataScience
 import pandas as pd
+from collections import defaultdict
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from metrics_interface import run_metrics
 from db.postgres import get_engine, get_algorithm_id, insert_clustering_run_record, expire_community_membership
 
 NEO4J_URI = os.getenv("NEO4J_URI")
@@ -80,7 +82,7 @@ def run_modularity_optimization(G):
     )
     return df
 
-def save_communities(df, algorithm_name):
+def save_communities(df, algorithm_name): 
     algorithm_id = get_algorithm_id(engine, algorithm_name)
     date_str = datetime.now().strftime("%b %d")
     description = f"{date_str} : {algorithm_name}"
@@ -117,6 +119,8 @@ def save_communities(df, algorithm_name):
     )
     community_memberships_df.to_sql("community_membership", engine, if_exists="append", index=False)
 
+    return run_id
+
 def run_community_detection():
     G = produce_graph_projection()
 
@@ -129,8 +133,11 @@ def run_community_detection():
         "modularity_optimization": run_modularity_optimization
     }
 
+    algorithm_runs = {}
     for name, func in algorithms.items():
         df = func(G)
-        save_communities(df, name)
+        algorithm_runs[name] = save_communities(df, name)
+
+    run_metrics(algorithm_runs)
 
 run_community_detection()

@@ -5,7 +5,11 @@ import networkx as nx
 from qdrant_client import QdrantClient
 from neo4j import GraphDatabase
 from collections import defaultdict
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from db.postgres import get_engine, get_communities_from_postgres
 from metrics import ecs, embedding_variance, compute_modularity, homophily, compute_conductance, per_community_table
+from visualization import display_conductance, display_ecs, display_variance
 
 QDRANT_HOST = os.getenv("QDRANT_HOST")
 QDRANT_PORT = os.getenv("QDRANT_PORT")
@@ -51,7 +55,7 @@ def l2_normalize(v: np.ndarray) -> np.ndarray:
     return v / n if n > 0 else v
 
 
-def get_user_embeddings():
+def get_user_embeddings(postgres_engine, run_id):
     posts = defaultdict(list)
     # find users who liked or posted a post
     with neo4j.session() as session:
@@ -71,9 +75,7 @@ def get_user_embeddings():
 
 
     user_embeddings = {u: l2_normalize(np.mean(vectors, axis=0)) for u, vectors in user_embeddings.items()} # collapse all post embeddings into one average
-
-    df_communities = clean_csv("../hdbscan_clusters.csv")
-
+    df_communities = get_communities_from_postgres(postgres_engine, run_id)
     with neo4j.session() as session:
         result = session.run("""
             MATCH (u:User)
@@ -82,8 +84,14 @@ def get_user_embeddings():
         )
         id_map = {record["neo4jId"]: record["did"] for record in result}
     
-    df_communities["did"] = df_communities["neo4jId"].apply(lambda x: id_map[x])
-    communities = dict(zip(df_communities["did"], df_communities["label"]))
+    df_communities["did"] = df_communities["neo4j_id"].apply(lambda x: id_map[x])
+    communities = {
+        row.did: {
+            "label": row.label,
+            "community_id": row.id
+        }
+        for row in df_communities.itertuples(index=False)
+    }
     communities = {did: com for did, com in communities.items() if did in user_embeddings}
     user_embeddings = {did: emb for did, emb in user_embeddings.items() if did in communities}
 
@@ -101,56 +109,41 @@ def get_user_embeddings():
 
     return G, user_embeddings, communities
 
-#TODO: put these in one function
-G, user_embeddings, communities = get_user_embeddings()
-print('CALCULATING METRICS GLOBALLY')
-ecs_value, cohesion, separation = ecs(G, user_embeddings, communities)
-print(f"ECS: {ecs_value:.4f}, Cohesion: {cohesion:.4f}, Separation: {separation:.4f}")
-homophily_value = homophily(G, user_embeddings)
-print(f"Homophilly: {homophily_value}")
-modularity_score = compute_modularity(G, communities)
-print(f"Modularity: {modularity_score}")
 
-print('CALCULATING METRICS PER COMMUNITY')
-df_comm = per_community_table(G, user_embeddings, communities)
+def build_comm_label_to_id_lookup(communities):
+    return {
+        comm["label"]: str(comm["community_id"])
+        for comm in communities.values()
+    }
 
-# Save the table for downstream analysis
-df_comm.to_csv("per_community_metrics.csv", index=False)
 
-import seaborn as sns
-import matplotlib
-matplotlib.use("Agg")  # headless plotting inside Docker
-import matplotlib.pyplot as plt
+def run_metrics(algorithm_runs: dict):
+    postgres_engine = get_engine()
+    for name, run_id in algorithm_runs.items():
+        G, user_embeddings, communities = get_user_embeddings(postgres_engine, run_id)
+        label_to_community_id = build_comm_label_to_id_lookup(communities)
+        print(label_to_community_id)
 
-# ECS per community
-plt.figure(figsize=(10, 6))
-sns.barplot(data=df_comm.sort_values("ecs", ascending=False), x="community", y="ecs", color="#4c78a8")
-plt.xticks(rotation=90)
-plt.ylabel("ECS (cohesion × separation)")
-plt.title("Echo Chamber Score by Community")
-plt.tight_layout()
-plt.savefig("ecs_by_community.png")
-plt.close()
+        print('CALCULATING METRICS GLOBALLY')
+        ecs_value, cohesion, separation = ecs(G, user_embeddings, communities)
+        print(f"ECS: {ecs_value:.4f}, Cohesion: {cohesion:.4f}, Separation: {separation:.4f}")
+        homophily_value = homophily(G, user_embeddings)
+        print(f"Homophilly: {homophily_value}")
+        modularity_score = compute_modularity(G, communities)
+        print(f"Modularity: {modularity_score}")
 
-# Conductance per community (lower = more insulated)
-plt.figure(figsize=(10, 6))
-sns.barplot(data=df_comm.sort_values("conductance", ascending=True), x="community", y="conductance", color="#f58518")
-plt.xticks(rotation=90)
-plt.ylabel("Conductance (lower = more insulated)")
-plt.title("Conductance by Community")
-plt.tight_layout()
-plt.savefig("conductance_by_community.png")
-plt.close()
+        print('CALCULATING METRICS PER COMMUNITY')
+        df_comm = per_community_table(G, user_embeddings, communities)
 
-# Variance per community (lower = more homogeneous)
-plt.figure(figsize=(10, 6))
-sns.barplot(data=df_comm.sort_values("variance", ascending=True), x="community", y="variance", color="#54a24b")
-plt.xticks(rotation=90)
-plt.ylabel("Mean squared distance to centroid")
-plt.title("Embedding Variance by Community")
-plt.tight_layout()
-plt.savefig("variance_by_community.png")
-plt.close()
+        display_conductance(df_comm)
+        display_ecs(df_comm)
+        display_variance(df_comm)
+
+        df_comm["community_id"] = df_comm["community"].map(label_to_community_id)
+
+        df_comm = df_comm.drop(columns=['community', 'size'])
+
+        df_comm.to_sql("community_metrics", postgres_engine, if_exists="append", index=False)
 
 def print_metrics(csv_name):
     G, user_embeddings, communities = get_user_embeddings(csv_name)
@@ -177,8 +170,3 @@ def print_metrics(csv_name):
     print("Conductance scores:")
     print(len(filtered_conductance_scores))
     print("===")
-
-for csv_file in ["hdbscan_clusters.csv", "kcore_clusters.csv", "label_propagation_clusters.csv", "leiden_clusters.csv", "louvain_clusters.csv", "modularity_optimization_clusters.csv"]:
-    print(f"Metrics for {csv_file}:")
-    print_metrics(csv_file)
-    print("\n\n")

@@ -32,7 +32,7 @@ def ecs(G, embeddings, communities):
     separation = _separation(outside_similarities)
     
     ecs = cohesion * separation
-    return ecs, cohesion, separation, inside_similarities, outside_similarities
+    return ecs, cohesion, separation
 
 def embedding_variance(embeddings, communities):
     variances = {}
@@ -57,11 +57,16 @@ def embedding_variance(embeddings, communities):
 def compute_modularity(G, communities):
     full_communities = {}
     for u in G.nodes():
-        full_communities[u] = communities.get(u, -1)  # -1 = noise / unassigned
+        if u in communities:
+            full_communities[u] = communities[u]["label"]
+        else:
+            full_communities[u] = -1  # noise / unassigned
 
     com_sets = defaultdict(set)
-    for u, c in full_communities.items():
-        com_sets[c].add(u)
+    for u, label in full_communities.items():
+        com_sets[label].add(u)
+
+    com_sets.pop(-1, None)
 
     return nx.community.modularity(G, list(com_sets.values()))
 
@@ -102,7 +107,8 @@ def per_community_table(G, embeddings, communities):
 
     for u, c in communities.items():
         if u in embeddings and u in G_nodes:
-            comm_nodes[c].add(u)
+            label = c["label"]
+            comm_nodes[label].add(u)
 
     rows = []
     # Precompute edge similarities once for reuse
@@ -119,7 +125,6 @@ def per_community_table(G, embeddings, communities):
         internal_sims = []
         external_sims = []
         for (u, v), sim in edge_sims.items():
-            cu, cv = communities.get(u), communities.get(v)
             if u in members and v in members:
                 internal_sims.append(sim)
             elif (u in members and v in outside) or (v in members and u in outside):
@@ -163,7 +168,7 @@ def per_community_table(G, embeddings, communities):
             "ecs": ecs_val,
             "conductance": conductance,
             "variance": variance,
-            "homophilly": homophily,
+            "homophily": homophily,
             "density_internal": density_internal,
             "internal_edge_count": subG.number_of_edges(),
         })
