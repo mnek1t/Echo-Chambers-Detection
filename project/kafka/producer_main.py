@@ -151,7 +151,7 @@ def crawl(seed_handle):
                 continue
 
             seen_users.add(did)
-            print("user send", did)
+            # print("user send", did)
             # send_to_kafka("users", did)
             send_to_kafka(TOPIC_USERS, get_profile(did))
 
@@ -161,8 +161,8 @@ def crawl(seed_handle):
                     continue
 
                 seen_posts.add(post["uri"])
-                print("post send", post["uri"])
-                print("post send author", post["author"])
+                # print("post send", post["uri"])
+                # print("post send author", post["author"])
                 send_to_kafka(TOPIC_POSTS, post)
 
                 likers = get_likers(post["uri"], MAX_LIKERS)
@@ -177,8 +177,8 @@ def crawl(seed_handle):
                         next_users.add(liker["did"])
 
         current_users = next_users
-        print("users seen : ", seen_users)
-        print("posts seen : ", seen_posts)
+        # print("users seen : ", seen_users)
+        # print("posts seen : ", seen_posts)
 
     print("Crawl finished")
 

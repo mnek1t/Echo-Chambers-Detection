@@ -8,3 +8,5 @@ seaborn
 matplotlib
 psycopg2-binary
 sqlalchemy
+python-dotenv
+streamlit

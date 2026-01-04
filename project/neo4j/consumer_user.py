@@ -73,7 +73,7 @@ while True:
         continue
     # print(msg.value())
     data = json.loads(msg.value().decode("utf-8"))
-    print("Received:", data)
+    # print("Received:", data)
 
     with driver.session() as session:
         if "type" in data and data["type"] == "LIKED":
