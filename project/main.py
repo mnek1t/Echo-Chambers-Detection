@@ -35,6 +35,11 @@ def main():
         "Qdrant Post Consumer"
     )
 
+    start_process(
+        ["python3", "postgres/community.py"],
+        "Postgres"
+    )
+
     time.sleep(3)
 
     start_process(

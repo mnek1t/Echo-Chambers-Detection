@@ -1,1 +1,0 @@
-# placeholder for analytics service. Here will be demonstration of acheieved results

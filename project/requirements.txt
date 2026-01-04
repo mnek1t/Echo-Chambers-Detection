@@ -6,3 +6,5 @@ sentence-transformers
 graphdatascience
 seaborn
 matplotlib
+psycopg2-binary
+sqlalchemy
