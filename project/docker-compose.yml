@@ -15,8 +15,7 @@ services:
     networks:
       - echo-chamber-net
     volumes:
-    - neo4j-data:/data 
-
+    - neo4j-data:/data
   postgres-db:
     image: postgres:latest
     container_name: postgres-communities
@@ -92,6 +91,18 @@ services:
     environment:
       REPORT_DIR: /data/reports
 
+  streamlit:
+    build: .
+    container_name: echo-chambers-ui
+    command: streamlit run app.py --server.port=8501 --server.address=0.0.0.0
+    ports:
+      - "8501:8501"
+    env_file:
+      - .env
+    networks:
+      - echo-chamber-net
+    depends_on:
+      - echo-chambers-app
 volumes:
   neo4j-data:
   postgres-data:
