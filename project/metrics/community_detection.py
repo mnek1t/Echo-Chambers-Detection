@@ -140,4 +140,5 @@ def run_community_detection():
 
     run_metrics(algorithm_runs)
 
-run_community_detection()
+if __name__ == "__main__":
+    run_community_detection()
