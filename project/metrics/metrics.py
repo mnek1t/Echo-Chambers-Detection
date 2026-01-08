@@ -55,20 +55,48 @@ def embedding_variance(embeddings, communities):
 
 
 def compute_modularity(G, communities):
+    from collections import defaultdict
+    import numpy as np
+    print("[DEBUG][modularity] total nodes in G:", G.number_of_nodes())
+    print("[DEBUG][modularity] nodes with community:",
+          sum(1 for u in G.nodes() if u in communities))
+
+    raw_sizes = defaultdict(int)
+    for u in G.nodes():
+        if u in communities:
+            raw_sizes[communities[u]["label"]] += 1
+
+    print("[DEBUG][modularity] raw community sizes:", dict(raw_sizes))
+    for label, size in raw_sizes.items():
+        nodes = [u for u in G.nodes()
+                 if u in communities and communities[u]["label"] == label]
+        sub = G.subgraph(nodes)
+        print(f"[DEBUG][modularity] community {label}: "
+              f"nodes={sub.number_of_nodes()}, edges={sub.number_of_edges()}")
+
     full_communities = {}
     for u in G.nodes():
         if u in communities:
             full_communities[u] = communities[u]["label"]
         else:
-            full_communities[u] = -1  # noise / unassigned
+            full_communities[u] = -1
 
     com_sets = defaultdict(set)
     for u, label in full_communities.items():
-        com_sets[label].add(u)
+        if label != -1:
+            com_sets[label].add(u)
 
-    com_sets.pop(-1, None)
+    # Fix ?
+    valid_coms = [c for c in com_sets.values() if len(c) >= 2]
 
-    return nx.community.modularity(G, list(com_sets.values()))
+    if len(valid_coms) < 2:
+        return np.nan
+
+    nodes = set().union(*valid_coms)
+    subG = G.subgraph(nodes)
+
+    return nx.community.modularity(subG, valid_coms)
+
 
 def homophily(G, embeddings):
     sims = []

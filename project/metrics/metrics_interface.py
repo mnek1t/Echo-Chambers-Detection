@@ -131,6 +131,9 @@ def run_metrics(algorithm_runs: dict):
         print(f"Homophilly: {homophily_value}")
         modularity_score = compute_modularity(G, communities)
         print(f"Modularity: {modularity_score}")
+        # print(f"Graph nodes: {G.number_of_nodes()}, edges: {G.number_of_edges()}")
+        # print(f"Users with embeddings: {len(user_embeddings)}")
+        # print(f"Users in communities: {len(communities)}")
 
         print('CALCULATING METRICS PER COMMUNITY')
         df_comm = per_community_table(G, user_embeddings, communities)
