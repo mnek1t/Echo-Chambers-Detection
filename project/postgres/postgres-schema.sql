@@ -44,5 +44,5 @@ CREATE TABLE community_membership (
     neo4j_id VARCHAR(255) NOT NULL,
     valid_from TIMESTAMP NOT NULL DEFAULT NOW(),
     valid_to TIMESTAMP,
-    PRIMARY KEY (community_id, neo4j_id)
+    PRIMARY KEY (community_id, neo4j_id, valid_from, valid_to)
 );
