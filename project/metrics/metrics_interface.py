@@ -9,7 +9,7 @@ import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from db.postgres import get_engine, get_communities_from_postgres
 from metrics import ecs, embedding_variance, compute_modularity, homophily, compute_conductance, per_community_table
-from visualization import display_conductance, display_ecs, display_variance
+from visualization import display_conductance, display_ecs, display_variance, display_homophily
 
 QDRANT_HOST = os.getenv("QDRANT_HOST")
 QDRANT_PORT = os.getenv("QDRANT_PORT")
@@ -141,6 +141,7 @@ def run_metrics(algorithm_runs: dict):
         display_conductance(df_comm)
         display_ecs(df_comm)
         display_variance(df_comm)
+        display_homophily(df_comm)
 
         df_comm["community_id"] = df_comm["community"].map(label_to_community_id)
 

@@ -26,6 +26,16 @@ def display_conductance(df):
     plt.close()
 
 
+def display_homophily(df):
+    plt.figure(figsize=(10, 6))
+    sns.barplot(data=df.sort_values("homophily", ascending=True), x="community", y="homophily", color="#54a24b")
+    plt.xticks(rotation=90)
+    plt.ylabel("Homophily")
+    plt.title("Homophily by Community")
+    plt.tight_layout()
+    plt.savefig("homophily_by_community.png")
+    plt.close()
+
 def display_variance(df):
     plt.figure(figsize=(10, 6))
     sns.barplot(data=df.sort_values("variance", ascending=True), x="community", y="variance", color="#54a24b")
